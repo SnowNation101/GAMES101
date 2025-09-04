@@ -1,6 +1,7 @@
 #include "Triangle.hpp"
 #include "rasterizer.hpp"
-#include <eigen3/Eigen/Eigen>
+
+#include <Eigen/Dense>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -11,8 +12,10 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
 
     Eigen::Matrix4f translate;
-    translate << 1, 0, 0, -eye_pos[0], 0, 1, 0, -eye_pos[1], 0, 0, 1,
-        -eye_pos[2], 0, 0, 0, 1;
+    translate << 1, 0, 0, -eye_pos[0], 
+                 0, 1, 0, -eye_pos[1], 
+                 0, 0, 1, -eye_pos[2], 
+                 0, 0, 0, 1;
 
     view = translate * view;
 
@@ -23,9 +26,11 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 
-    // TODO: Implement this function
-    // Create the model matrix for rotating the triangle around the Z axis.
-    // Then return it.
+    float rad = rotation_angle * static_cast<float>(MY_PI / 180.0f);
+    model << cos(rad), -sin(rad), 0, 0,
+             sin(rad),  cos(rad), 0, 0,
+             0, 0, 1, 0,
+             0, 0, 0, 1;
 
     return model;
 }
@@ -33,13 +38,37 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
 {
-    // Students will implement this function
-
     Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
 
-    // TODO: Implement this function
-    // Create the projection matrix for the given parameters.
-    // Then return it.
+    float t = tan(eye_fov / 2.0 / 180.0 * MY_PI) * abs(zNear);
+    float r = t * aspect_ratio;
+    float b = -t;
+    float l = -r;
+
+    // 1. Perspective Transformation Matrix M_persp
+    Eigen::Matrix4f M_persp;
+    M_persp << zNear, 0, 0, 0,
+               0, zNear, 0, 0,
+               0, 0, zNear + zFar, -zFar * zNear,
+               0, 0, 1, 0;
+
+    // 2. Orthographic Transformation Matrix M_ortho
+    Eigen::Matrix4f M_ortho_translate = Eigen::Matrix4f::Identity();
+    M_ortho_translate << 1, 0, 0, -(r + l) / 2.0,
+                         0, 1, 0, -(t + b) / 2.0,
+                         0, 0, 1, -(zNear + zFar) / 2.0,
+                         0, 0, 0, 1;
+
+    Eigen::Matrix4f M_ortho_scale = Eigen::Matrix4f::Identity();
+    M_ortho_scale << 2.0 / (r - l), 0, 0, 0,
+                     0, 2.0 / (t - b), 0, 0,
+                     0, 0, 2.0 / (zNear - zFar), 0,
+                     0, 0, 0, 1;
+    
+    Eigen::Matrix4f M_ortho = M_ortho_scale * M_ortho_translate;
+
+    // The final projection matrix is M_ortho * M_persp
+    projection = M_ortho * M_persp;
 
     return projection;
 }
