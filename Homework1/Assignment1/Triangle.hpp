@@ -1,13 +1,10 @@
-//
-// Created by LEI XU on 4/11/19.
-//
-
 #ifndef RASTERIZER_TRIANGLE_H
 #define RASTERIZER_TRIANGLE_H
 
 #include <Eigen/Dense>
 
 using namespace Eigen;
+
 class Triangle
 {
   public:
